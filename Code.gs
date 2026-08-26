@@ -12,41 +12,49 @@ const SHEET_NAMES = {
 /**
  * Initialize the study app - creates all necessary sheets and sets up the interface
  */
-function onOpen() {
-  const ui = SpreadsheetApp.getUi();
-  ui.createMenu('📚 Study App')
-    .addItem('📊 Open Dashboard', 'openDashboard')
-    .addItem('📝 Log Study Session', 'openStudyLogDialog')
-    .addItem('🎯 Set Study Goals', 'openGoalsDialog')
-    .addItem('📖 Manage Subjects', 'openSubjectsDialog')
-    .addItem('⚙️ Settings', 'openSettingsDialog')
-    .addItem('📈 View Progress Report', 'generateProgressReport')
-    .addSeparator()
-    .addItem('🔄 Initialize App', 'initializeApp')
-    .addToUi();
+function onOpen(e) {
+  try {
+    const ui = SpreadsheetApp.getUi();
+    ui.createMenu('📚 Study App')
+      .addItem('📊 Open Dashboard', 'openDashboard')
+      .addItem('📝 Log Study Session', 'openStudyLogDialog')
+      .addItem('🎯 Set Study Goals', 'openGoalsDialog')
+      .addItem('📖 Manage Subjects', 'openSubjectsDialog')
+      .addItem('📈 View Progress Report', 'generateProgressReport')
+      .addSeparator()
+      .addItem('🔄 Initialize App', 'initializeApp')
+      .addToUi();
+  } catch(err) {
+    Logger.log('Error in onOpen: ' + err);
+  }
 }
 
 /**
  * Initialize the study app with default sheets and formatting
  */
 function initializeApp() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  // Create all necessary sheets
-  createSheetIfNotExists(ss, SHEET_NAMES.DASHBOARD);
-  createSheetIfNotExists(ss, SHEET_NAMES.STUDY_LOG);
-  createSheetIfNotExists(ss, SHEET_NAMES.GOALS);
-  createSheetIfNotExists(ss, SHEET_NAMES.SUBJECTS);
-  createSheetIfNotExists(ss, SHEET_NAMES.SETTINGS);
-  
-  // Set up headers for each sheet
-  setupDashboard(ss);
-  setupStudyLog(ss);
-  setupGoals(ss);
-  setupSubjects(ss);
-  setupSettings(ss);
-  
-  SpreadsheetApp.getUi().alert('✅ Study App initialized successfully!');
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ui = SpreadsheetApp.getUi();
+    
+    // Create all necessary sheets
+    createSheetIfNotExists(ss, SHEET_NAMES.DASHBOARD);
+    createSheetIfNotExists(ss, SHEET_NAMES.STUDY_LOG);
+    createSheetIfNotExists(ss, SHEET_NAMES.GOALS);
+    createSheetIfNotExists(ss, SHEET_NAMES.SUBJECTS);
+    createSheetIfNotExists(ss, SHEET_NAMES.SETTINGS);
+    
+    // Set up headers for each sheet
+    setupDashboard(ss);
+    setupStudyLog(ss);
+    setupGoals(ss);
+    setupSubjects(ss);
+    setupSettings(ss);
+    
+    ui.alert('✅ Study App initialized successfully!');
+  } catch(err) {
+    SpreadsheetApp.getUi().alert('Error: ' + err);
+  }
 }
 
 /**
@@ -70,9 +78,14 @@ function setupDashboard(ss) {
   
   // Summary section
   sheet.getRange('A3').setValue('Today\'s Study Summary').setFontWeight('bold').setFontSize(14);
-  sheet.getRange('A4:B4').setValues([['Subjects Studied', '=COUNTA(\'Study Log\'!A:A)-1']]);
-  sheet.getRange('A5:B5').setValues([['Total Study Time (min)', '=SUM(\'Study Log\'!C:C)']]);
-  sheet.getRange('A6:B6').setValues([['Subjects This Week', '=SUMPRODUCT((\'Study Log\'!A:A<>"")*((TODAY()-\'Study Log\'!B:B)<=7))']]);
+  sheet.getRange('A4').setValue('Subjects Studied');
+  sheet.getRange('B4').setFormula('=COUNTA(\'Study Log\'!A:A)-1');
+  
+  sheet.getRange('A5').setValue('Total Study Time (min)');
+  sheet.getRange('B5').setFormula('=IFERROR(SUM(\'Study Log\'!C:C),0)');
+  
+  sheet.getRange('A6').setValue('Total Sessions');
+  sheet.getRange('B6').setFormula('=COUNTA(\'Study Log\'!A:A)-1');
   
   // Format
   sheet.setColumnWidth(1, 250);
@@ -167,9 +180,9 @@ function setupSubjects(ss) {
   sheet.freezeRows(1);
   
   // Add sample subjects
-  sheet.getRange('A2:F2').setValues([['Mathematics', 'A', 'Mr. Smith', '2026-12-15', 'Focus on calculus', 'Blue']]);
-  sheet.getRange('A3:F3').setValues([['English', 'B', 'Mrs. Johnson', '2026-12-10', 'Essay writing practice', 'Red']]);
-  sheet.getRange('A4:F4').setValues([['Physics', 'A', 'Mr. Brown', '2026-12-20', 'Mechanics and waves', 'Green']]);
+  sheet.appendRow(['Mathematics', 'A', 'Mr. Smith', '2026-12-15', 'Focus on calculus', 'Blue']);
+  sheet.appendRow(['English', 'B', 'Mrs. Johnson', '2026-12-10', 'Essay writing practice', 'Red']);
+  sheet.appendRow(['Physics', 'A', 'Mr. Brown', '2026-12-20', 'Mechanics and waves', 'Green']);
 }
 
 /**
@@ -181,17 +194,27 @@ function setupSettings(ss) {
   
   sheet.getRange('A1').setValue('⚙️ SETTINGS').setFontSize(16).setFontWeight('bold');
   
-  const settings = [
-    ['Daily Study Goal (minutes)', '180'],
-    ['Weekly Study Goal (hours)', '15'],
-    ['School Name', 'Your School Name'],
-    ['Timezone', 'UTC'],
-    ['Email for Notifications', 'your-email@example.com'],
-    ['Notification Enabled', 'No']
-  ];
+  sheet.getRange('A3').setValue('Setting');
+  sheet.getRange('B3').setValue('Value');
+  sheet.getRange('A3:B3').setFontWeight('bold').setBackground('#F5F5F5');
   
-  sheet.getRange('A3:B3').setValues([['Setting', 'Value']]).setFontWeight('bold').setBackground('#F5F5F5');
-  sheet.getRange('A4:B9').setValues(settings);
+  sheet.getRange('A4').setValue('Daily Study Goal (minutes)');
+  sheet.getRange('B4').setValue('180');
+  
+  sheet.getRange('A5').setValue('Weekly Study Goal (hours)');
+  sheet.getRange('B5').setValue('15');
+  
+  sheet.getRange('A6').setValue('School Name');
+  sheet.getRange('B6').setValue('Your School Name');
+  
+  sheet.getRange('A7').setValue('Timezone');
+  sheet.getRange('B7').setValue('UTC');
+  
+  sheet.getRange('A8').setValue('Email for Notifications');
+  sheet.getRange('B8').setValue('your-email@example.com');
+  
+  sheet.getRange('A9').setValue('Notification Enabled');
+  sheet.getRange('B9').setValue('No');
   
   sheet.setColumnWidth(1, 250);
   sheet.setColumnWidth(2, 300);
@@ -201,294 +224,319 @@ function setupSettings(ss) {
  * Open dialog to log a study session
  */
 function openStudyLogDialog() {
-  const html = HtmlService.createHtmlOutput(`
-    <style>
-      body { font-family: Arial, sans-serif; margin: 15px; }
-      label { display: block; margin-top: 12px; font-weight: bold; }
-      input, select, textarea { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-      textarea { resize: vertical; min-height: 80px; }
-      button { background: #1F77D4; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px; font-size: 14px; }
-      button:hover { background: #0D47A1; }
-      .button-group { text-align: right; }
-    </style>
-    
-    <h2>📝 Log Study Session</h2>
-    
-    <label>Subject:</label>
-    <select id="subject">
-      <option value="">Select a subject...</option>
-      <option value="Mathematics">Mathematics</option>
-      <option value="English">English</option>
-      <option value="Physics">Physics</option>
-      <option value="Chemistry">Chemistry</option>
-      <option value="Biology">Biology</option>
-      <option value="History">History</option>
-      <option value="Geography">Geography</option>
-      <option value="Other">Other</option>
-    </select>
-    
-    <label>Date:</label>
-    <input type="date" id="date">
-    
-    <label>Study Time (minutes):</label>
-    <input type="number" id="time" min="1" value="30">
-    
-    <label>Topic:</label>
-    <input type="text" id="topic" placeholder="e.g., Quadratic Equations">
-    
-    <label>Notes:</label>
-    <textarea id="notes" placeholder="What did you study? Any challenges?"></textarea>
-    
-    <label>Difficulty:</label>
-    <select id="difficulty">
-      <option value="Easy">Easy</option>
-      <option value="Medium" selected>Medium</option>
-      <option value="Hard">Hard</option>
-    </select>
-    
-    <div class="button-group">
-      <button onclick="submitStudyLog()">✅ Log Session</button>
-      <button onclick="closeDialog()" style="background: #999;">Cancel</button>
-    </div>
-    
-    <script>
-      document.getElementById('date').valueAsDate = new Date();
+  try {
+    const html = HtmlService.createHtmlOutput(`
+      <style>
+        body { font-family: Arial, sans-serif; margin: 15px; background: #f9f9f9; }
+        label { display: block; margin-top: 12px; font-weight: bold; color: #333; }
+        input, select, textarea { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-family: Arial, sans-serif; }
+        textarea { resize: vertical; min-height: 80px; }
+        button { background: #1F77D4; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px; margin-right: 5px; font-size: 14px; }
+        button:hover { background: #0D47A1; }
+        .button-group { text-align: right; }
+        h2 { color: #1F77D4; }
+      </style>
       
-      function submitStudyLog() {
-        const data = {
-          subject: document.getElementById('subject').value,
-          date: document.getElementById('date').value,
-          time: document.getElementById('time').value,
-          topic: document.getElementById('topic').value,
-          notes: document.getElementById('notes').value,
-          difficulty: document.getElementById('difficulty').value
-        };
+      <h2>📝 Log Study Session</h2>
+      
+      <label>Subject:</label>
+      <select id="subject">
+        <option value="">Select a subject...</option>
+        <option value="Mathematics">Mathematics</option>
+        <option value="English">English</option>
+        <option value="Physics">Physics</option>
+        <option value="Chemistry">Chemistry</option>
+        <option value="Biology">Biology</option>
+        <option value="History">History</option>
+        <option value="Geography">Geography</option>
+        <option value="Other">Other</option>
+      </select>
+      
+      <label>Date:</label>
+      <input type="date" id="date">
+      
+      <label>Study Time (minutes):</label>
+      <input type="number" id="time" min="1" value="30">
+      
+      <label>Topic:</label>
+      <input type="text" id="topic" placeholder="e.g., Quadratic Equations">
+      
+      <label>Notes:</label>
+      <textarea id="notes" placeholder="What did you study? Any challenges?"></textarea>
+      
+      <label>Difficulty:</label>
+      <select id="difficulty">
+        <option value="Easy">Easy</option>
+        <option value="Medium" selected>Medium</option>
+        <option value="Hard">Hard</option>
+      </select>
+      
+      <div class="button-group">
+        <button onclick="submitStudyLog()">✅ Log Session</button>
+        <button onclick="closeDialog()" style="background: #999;">Cancel</button>
+      </div>
+      
+      <script>
+        document.getElementById('date').valueAsDate = new Date();
         
-        if (!data.subject || !data.date || !data.time) {
-          alert('Please fill in all required fields');
-          return;
+        function submitStudyLog() {
+          const data = {
+            subject: document.getElementById('subject').value,
+            date: document.getElementById('date').value,
+            time: document.getElementById('time').value,
+            topic: document.getElementById('topic').value,
+            notes: document.getElementById('notes').value,
+            difficulty: document.getElementById('difficulty').value
+          };
+          
+          if (!data.subject || !data.date || !data.time) {
+            alert('Please fill in all required fields');
+            return;
+          }
+          
+          google.script.run.addStudyLog(data);
         }
         
-        google.script.run.addStudyLog(data);
-        closeDialog();
-      }
-      
-      function closeDialog() {
-        google.script.host.close();
-      }
-    </script>
-  `);
-  
-  SpreadsheetApp.getUi().showModalDialog(html, '📝 Log Study Session');
+        function closeDialog() {
+          google.script.host.close();
+        }
+      </script>
+    `);
+    
+    SpreadsheetApp.getUi().showModalDialog(html, '📝 Log Study Session');
+  } catch(err) {
+    SpreadsheetApp.getUi().alert('Error: ' + err);
+  }
 }
 
 /**
  * Add study log entry to the sheet
  */
 function addStudyLog(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAMES.STUDY_LOG);
-  
-  const newRow = [
-    data.subject,
-    new Date(data.date),
-    parseInt(data.time),
-    data.topic,
-    data.notes,
-    data.difficulty,
-    new Date()
-  ];
-  
-  sheet.appendRow(newRow);
-  
-  // Apply conditional formatting to difficulty column
-  const lastRow = sheet.getLastRow();
-  const difficultyCell = sheet.getRange(lastRow, 6);
-  
-  if (data.difficulty === 'Easy') {
-    difficultyCell.setBackground('#C8E6C9');
-  } else if (data.difficulty === 'Medium') {
-    difficultyCell.setBackground('#FFF9C4');
-  } else {
-    difficultyCell.setBackground('#FFCDD2');
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_NAMES.STUDY_LOG);
+    
+    const newRow = [
+      data.subject,
+      new Date(data.date),
+      parseInt(data.time),
+      data.topic,
+      data.notes,
+      data.difficulty,
+      new Date()
+    ];
+    
+    sheet.appendRow(newRow);
+    
+    // Apply conditional formatting to difficulty column
+    const lastRow = sheet.getLastRow();
+    const difficultyCell = sheet.getRange(lastRow, 6);
+    
+    if (data.difficulty === 'Easy') {
+      difficultyCell.setBackground('#C8E6C9');
+    } else if (data.difficulty === 'Medium') {
+      difficultyCell.setBackground('#FFF9C4');
+    } else {
+      difficultyCell.setBackground('#FFCDD2');
+    }
+    
+    SpreadsheetApp.getUi().alert(`✅ Study session logged!\n\nSubject: ${data.subject}\nTime: ${data.time} minutes`);
+  } catch(err) {
+    SpreadsheetApp.getUi().alert('Error saving study log: ' + err);
   }
-  
-  SpreadsheetApp.getUi().alert(`✅ Study session logged!\n\nSubject: ${data.subject}\nTime: ${data.time} minutes`);
 }
 
 /**
  * Open dialog to set study goals
  */
 function openGoalsDialog() {
-  const html = HtmlService.createHtmlOutput(`
-    <style>
-      body { font-family: Arial, sans-serif; margin: 15px; }
-      label { display: block; margin-top: 12px; font-weight: bold; }
-      input, select { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-      button { background: #D32F2F; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px; font-size: 14px; }
-      button:hover { background: #B71C1C; }
-      .button-group { text-align: right; }
-    </style>
-    
-    <h2>🎯 Set Study Goal</h2>
-    
-    <label>Goal Description:</label>
-    <input type="text" id="goal" placeholder="e.g., Master Calculus Chapter 5">
-    
-    <label>Subject:</label>
-    <select id="subject">
-      <option value="">Select a subject...</option>
-      <option value="Mathematics">Mathematics</option>
-      <option value="English">English</option>
-      <option value="Physics">Physics</option>
-      <option value="Chemistry">Chemistry</option>
-      <option value="Biology">Biology</option>
-      <option value="History">History</option>
-      <option value="Geography">Geography</option>
-      <option value="Other">Other</option>
-    </select>
-    
-    <label>Target Study Time (minutes):</label>
-    <input type="number" id="targetTime" min="30" value="120">
-    
-    <label>Deadline:</label>
-    <input type="date" id="deadline">
-    
-    <label>Priority:</label>
-    <select id="priority">
-      <option value="Low">Low</option>
-      <option value="Medium" selected>Medium</option>
-      <option value="High">High</option>
-    </select>
-    
-    <div class="button-group">
-      <button onclick="submitGoal()">✅ Set Goal</button>
-      <button onclick="closeDialog()" style="background: #999;">Cancel</button>
-    </div>
-    
-    <script>
-      document.getElementById('deadline').valueAsDate = new Date(Date.now() + 7*24*60*60*1000);
+  try {
+    const html = HtmlService.createHtmlOutput(`
+      <style>
+        body { font-family: Arial, sans-serif; margin: 15px; background: #f9f9f9; }
+        label { display: block; margin-top: 12px; font-weight: bold; color: #333; }
+        input, select { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-family: Arial, sans-serif; }
+        button { background: #D32F2F; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px; margin-right: 5px; font-size: 14px; }
+        button:hover { background: #B71C1C; }
+        .button-group { text-align: right; }
+        h2 { color: #D32F2F; }
+      </style>
       
-      function submitGoal() {
-        const data = {
-          goal: document.getElementById('goal').value,
-          subject: document.getElementById('subject').value,
-          targetTime: document.getElementById('targetTime').value,
-          deadline: document.getElementById('deadline').value,
-          priority: document.getElementById('priority').value
-        };
+      <h2>🎯 Set Study Goal</h2>
+      
+      <label>Goal Description:</label>
+      <input type="text" id="goal" placeholder="e.g., Master Calculus Chapter 5">
+      
+      <label>Subject:</label>
+      <select id="subject">
+        <option value="">Select a subject...</option>
+        <option value="Mathematics">Mathematics</option>
+        <option value="English">English</option>
+        <option value="Physics">Physics</option>
+        <option value="Chemistry">Chemistry</option>
+        <option value="Biology">Biology</option>
+        <option value="History">History</option>
+        <option value="Geography">Geography</option>
+        <option value="Other">Other</option>
+      </select>
+      
+      <label>Target Study Time (minutes):</label>
+      <input type="number" id="targetTime" min="30" value="120">
+      
+      <label>Deadline:</label>
+      <input type="date" id="deadline">
+      
+      <label>Priority:</label>
+      <select id="priority">
+        <option value="Low">Low</option>
+        <option value="Medium" selected>Medium</option>
+        <option value="High">High</option>
+      </select>
+      
+      <div class="button-group">
+        <button onclick="submitGoal()">✅ Set Goal</button>
+        <button onclick="closeDialog()" style="background: #999;">Cancel</button>
+      </div>
+      
+      <script>
+        document.getElementById('deadline').valueAsDate = new Date(Date.now() + 7*24*60*60*1000);
         
-        if (!data.goal || !data.subject || !data.deadline) {
-          alert('Please fill in all required fields');
-          return;
+        function submitGoal() {
+          const data = {
+            goal: document.getElementById('goal').value,
+            subject: document.getElementById('subject').value,
+            targetTime: document.getElementById('targetTime').value,
+            deadline: document.getElementById('deadline').value,
+            priority: document.getElementById('priority').value
+          };
+          
+          if (!data.goal || !data.subject || !data.deadline) {
+            alert('Please fill in all required fields');
+            return;
+          }
+          
+          google.script.run.addGoal(data);
         }
         
-        google.script.run.addGoal(data);
-        closeDialog();
-      }
-      
-      function closeDialog() {
-        google.script.host.close();
-      }
-    </script>
-  `);
-  
-  SpreadsheetApp.getUi().showModalDialog(html, '🎯 Set Study Goal');
+        function closeDialog() {
+          google.script.host.close();
+        }
+      </script>
+    `);
+    
+    SpreadsheetApp.getUi().showModalDialog(html, '🎯 Set Study Goal');
+  } catch(err) {
+    SpreadsheetApp.getUi().alert('Error: ' + err);
+  }
 }
 
 /**
  * Add goal to the Goals sheet
  */
 function addGoal(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAMES.GOALS);
-  
-  const newRow = [
-    data.goal,
-    data.subject,
-    parseInt(data.targetTime),
-    new Date(data.deadline),
-    data.priority,
-    'In Progress',
-    0,
-    new Date()
-  ];
-  
-  sheet.appendRow(newRow);
-  
-  // Color code by priority
-  const lastRow = sheet.getLastRow();
-  const priorityCell = sheet.getRange(lastRow, 5);
-  
-  if (data.priority === 'High') {
-    priorityCell.setBackground('#FFCDD2');
-  } else if (data.priority === 'Medium') {
-    priorityCell.setBackground('#FFF9C4');
-  } else {
-    priorityCell.setBackground('#C8E6C9');
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_NAMES.GOALS);
+    
+    const newRow = [
+      data.goal,
+      data.subject,
+      parseInt(data.targetTime),
+      new Date(data.deadline),
+      data.priority,
+      'In Progress',
+      0,
+      new Date()
+    ];
+    
+    sheet.appendRow(newRow);
+    
+    // Color code by priority
+    const lastRow = sheet.getLastRow();
+    const priorityCell = sheet.getRange(lastRow, 5);
+    
+    if (data.priority === 'High') {
+      priorityCell.setBackground('#FFCDD2');
+    } else if (data.priority === 'Medium') {
+      priorityCell.setBackground('#FFF9C4');
+    } else {
+      priorityCell.setBackground('#C8E6C9');
+    }
+    
+    SpreadsheetApp.getUi().alert(`✅ Goal added!\n\nGoal: ${data.goal}\nDeadline: ${data.deadline}`);
+  } catch(err) {
+    SpreadsheetApp.getUi().alert('Error saving goal: ' + err);
   }
-  
-  SpreadsheetApp.getUi().alert(`✅ Goal added!\n\nGoal: ${data.goal}\nDeadline: ${data.deadline}`);
 }
 
 /**
- * Open Subjects management dialog
+ * Open Subjects management
  */
 function openSubjectsDialog() {
-  SpreadsheetApp.getUi().alert('📖 Open the "Subjects" sheet to manage your subjects');
-  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.SUBJECTS).activate();
-}
-
-/**
- * Open Settings dialog
- */
-function openSettingsDialog() {
-  SpreadsheetApp.getUi().alert('⚙️ Open the "Settings" sheet to configure your preferences');
-  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.SETTINGS).activate();
+  try {
+    SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.SUBJECTS).activate();
+    SpreadsheetApp.getUi().alert('📖 Managing Subjects\n\nEdit the "Subjects" sheet to add or modify your subjects.');
+  } catch(err) {
+    SpreadsheetApp.getUi().alert('Error: ' + err);
+  }
 }
 
 /**
  * Open Dashboard
  */
 function openDashboard() {
-  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DASHBOARD).activate();
+  try {
+    SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DASHBOARD).activate();
+  } catch(err) {
+    SpreadsheetApp.getUi().alert('Error: ' + err);
+  }
 }
 
 /**
  * Generate a progress report
  */
 function generateProgressReport() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const studyLogSheet = ss.getSheetByName(SHEET_NAMES.STUDY_LOG);
-  const goalsSheet = ss.getSheetByName(SHEET_NAMES.GOALS);
-  
-  const studyData = studyLogSheet.getDataRange().getValues();
-  
-  let report = '📈 PROGRESS REPORT\n\n';
-  report += '=' .repeat(50) + '\n';
-  
-  // Calculate total study time
-  let totalTime = 0;
-  const subjectTime = {};
-  
-  for (let i = 1; i < studyData.length; i++) {
-    const subject = studyData[i][0];
-    const time = studyData[i][2];
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const studyLogSheet = ss.getSheetByName(SHEET_NAMES.STUDY_LOG);
     
-    totalTime += time;
-    subjectTime[subject] = (subjectTime[subject] || 0) + time;
+    const studyData = studyLogSheet.getDataRange().getValues();
+    
+    let report = '📈 PROGRESS REPORT\n\n';
+    report += '='.repeat(50) + '\n';
+    
+    // Calculate total study time
+    let totalTime = 0;
+    const subjectTime = {};
+    
+    for (let i = 1; i < studyData.length; i++) {
+      const subject = studyData[i][0];
+      const time = studyData[i][2];
+      
+      if (subject && !isNaN(time)) {
+        totalTime += time;
+        subjectTime[subject] = (subjectTime[subject] || 0) + time;
+      }
+    }
+    
+    if (totalTime === 0) {
+      report += 'No study sessions logged yet. Start logging your study sessions!\n';
+    } else {
+      report += `Total Study Time: ${totalTime} minutes (${(totalTime/60).toFixed(1)} hours)\n\n`;
+      report += 'Study Time by Subject:\n';
+      
+      for (const [subject, time] of Object.entries(subjectTime).sort((a, b) => b[1] - a[1])) {
+        const percentage = ((time / totalTime) * 100).toFixed(1);
+        const bar = '█'.repeat(Math.floor(percentage / 5));
+        report += `  ${subject}: ${time}m (${percentage}%) ${bar}\n`;
+      }
+    }
+    
+    report += '\n' + '='.repeat(50);
+    
+    SpreadsheetApp.getUi().alert(report);
+  } catch(err) {
+    SpreadsheetApp.getUi().alert('Error generating report: ' + err);
   }
-  
-  report += `Total Study Time: ${totalTime} minutes (${(totalTime/60).toFixed(1)} hours)\n\n`;
-  report += 'Study Time by Subject:\n';
-  
-  for (const [subject, time] of Object.entries(subjectTime).sort((a, b) => b[1] - a[1])) {
-    const percentage = ((time / totalTime) * 100).toFixed(1);
-    report += `  • ${subject}: ${time} min (${percentage}%)\n`;
-  }
-  
-  report += '\n' + '='.repeat(50) + '\n';
-  report += 'Active Goals: ' + (goalsSheet.getLastRow() - 1) + '\n';
-  
-  SpreadsheetApp.getUi().alert(report);
 }
